@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { account, databases, storage, ID } from "@/services/appwrite";
 import PageWrapper from "@/components/UI/PageWrapper";
 import { Link } from "react-router-dom";
-import { Users } from "lucide-react";
+import { Users, Camera } from "lucide-react";
 
 const EditProfilePage = () => {
   const [userId, setUserId] = useState("");
@@ -72,11 +72,25 @@ const EditProfilePage = () => {
         <p className="text-xl font-semibold">{username}</p>
 
         {previewUrl && (
-          <img
-            src={previewUrl}
-            alt="Profile preview"
-            className="w-32 h-32 object-cover rounded-full border border-white"
-          />
+          <div className="relative w-32 h-32">
+            <label className="cursor-pointer block w-full h-full">
+              <img
+                src={previewUrl}
+                alt="Profile preview"
+                className="w-32 h-32 object-cover rounded-full border border-white"
+              />
+              <div className="absolute bottom-1 right-1 bg-black bg-opacity-60 p-1 rounded-full">
+                <Camera className="w-5 h-5 text-white" />
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
+          </div>
         )}
 
         <Link
@@ -85,21 +99,6 @@ const EditProfilePage = () => {
         >
           <Users className="w-4 h-4" /> Manage Friends
         </Link>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="bg-zinc-800 text-white border border-zinc-600 px-4 py-2 rounded hover:bg-zinc-700"
-        >
-          Choose Photo
-        </button>
 
         <textarea
           placeholder="Write a short description..."

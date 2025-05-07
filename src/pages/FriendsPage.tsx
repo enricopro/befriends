@@ -13,6 +13,7 @@ const FriendsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [message, setMessage] = useState("");
+  const [searching, setSearching] = useState(false);
 
   const dbId = import.meta.env.VITE_APPWRITE_DATABASE_ID!;
   const usersColId = import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID!;
@@ -61,14 +62,22 @@ const FriendsPage = () => {
   }, [message]);
 
   const handleSearch = async () => {
-    const res = await databases.listDocuments(dbId, usersColId, [
-      Query.startsWith("username", searchTerm),
-      Query.notEqual("username", username),
-    ]);
+    setSearching(true);
+    try {
+      const res = await databases.listDocuments(dbId, usersColId, [
+        Query.contains("username", searchTerm),
+        Query.notEqual("username", username),
+      ]);
 
-    const friendIds = new Set(friends.map((f) => f.$id));
-    const filtered = res.documents.filter((user) => !friendIds.has(user.$id));
-    setSearchResults(filtered);
+      const friendIds = new Set(friends.map((f) => f.$id));
+      const filtered = res.documents.filter((user) => !friendIds.has(user.$id));
+      setSearchResults(filtered);
+    } catch (err) {
+      console.error("Search failed", err);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleSendRequest = async (targetId: string) => {
@@ -152,13 +161,14 @@ const FriendsPage = () => {
             placeholder="Search by username"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-800 text-white border border-zinc-600 p-2 rounded"
+            className="w-full bg-zinc-800 text-white border border-zinc-600 p-2 mb-4 rounded"
           />
 
           {searchTerm.length >= 2 && (
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold">Search Results</h2>
-              {searchResults.length === 0 ? (
+              {searching ? (
+                <p className="text-sm text-zinc-400">Searching...</p>
+              ) : searchResults.length === 0 ? (
                 <p className="text-sm text-zinc-400">No results found.</p>
               ) : (
                 searchResults.map((user) => (
