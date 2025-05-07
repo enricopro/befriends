@@ -1,3 +1,4 @@
+// full updated HomePage with location below profile name and loading state to prevent flash
 import { useEffect, useState } from "react";
 import { account, databases, storage } from "@/services/appwrite";
 import { Query } from "appwrite";
@@ -6,12 +7,13 @@ import { Link, useNavigate } from "react-router-dom";
 
 const HomePage = () => {
   const [userId, setUserId] = useState("");
-  const [friends, setFriends] = useState<string[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [userMap, setUserMap] = useState<Record<string, any>>({});
   const [swappedPostIds, setSwappedPostIds] = useState<Set<string>>(new Set());
   const [emojiPickerVisible, setEmojiPickerVisible] = useState<Record<string, boolean>>({});
   const [canViewFeed, setCanViewFeed] = useState(false);
+  const [locations, setLocations] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const dbId = import.meta.env.VITE_APPWRITE_DATABASE_ID!;
@@ -19,6 +21,7 @@ const HomePage = () => {
   const postsColId = import.meta.env.VITE_APPWRITE_POSTS_COLLECTION_ID!;
   const notifsColId = import.meta.env.VITE_APPWRITE_NOTIFICATIONS_COLLECTION_ID!;
   const bucketId = import.meta.env.VITE_APPWRITE_STORAGE_ID!;
+  const openCageKey = import.meta.env.VITE_OPENCAGE_API_KEY;
 
   const emojis = ["👍", "😁", "😮", "😍", "😂"];
 
@@ -31,7 +34,6 @@ const HomePage = () => {
       const today = new Date(now);
       today.setHours(0, 0, 0, 0);
 
-      // Check if user has posted today
       const postRes = await databases.listDocuments(dbId, postsColId, [
         Query.equal("userId", session.$id),
         Query.greaterThan("timestamp", today.toISOString()),
@@ -40,7 +42,6 @@ const HomePage = () => {
       const hasPosted = postRes.documents.length > 0;
       setCanViewFeed(hasPosted);
 
-      // Fetch today's notification
       const notifRes = await databases.listDocuments(dbId, notifsColId, [
         Query.equal("year", now.getUTCFullYear()),
         Query.equal("month", now.getUTCMonth() + 1),
@@ -51,13 +52,15 @@ const HomePage = () => {
       const notif = notifRes.documents[0];
       const notifTime = notif ? new Date(notif.timestamp) : null;
 
-      // If within 5 minutes of the notification AND user hasn't posted, redirect
       if (notifTime && now.getTime() - notifTime.getTime() < 5 * 60 * 1000 && !hasPosted) {
         navigate("/post");
         return;
       }
 
-      if (!hasPosted) return;
+      if (!hasPosted) {
+        setLoading(false);
+        return;
+      }
 
       const userDoc = await databases.getDocument(dbId, usersColId, session.$id);
       const friendIds = userDoc.friends || [];
@@ -82,6 +85,17 @@ const HomePage = () => {
 
       setUserMap(userDataMap);
       setPosts(filteredPosts);
+
+      const locMap: Record<string, string> = {};
+      await Promise.all(filteredPosts.map(async (post) => {
+        if (post.lat && post.lng) {
+          const res = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${post.lat}+${post.lng}&key=${openCageKey}`);
+          const data = await res.json();
+          locMap[post.$id] = data?.results?.[0]?.components?.city || data?.results?.[0]?.components?.country || "";
+        }
+      }));
+      setLocations(locMap);
+      setLoading(false);
     };
 
     loadData();
@@ -144,113 +158,173 @@ const HomePage = () => {
     setEmojiPickerVisible((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
+  const userPost = posts.find((p) => p.userId === userId);
+  const friendsPosts = posts.filter((p) => p.userId !== userId);
+
   return (
     <PageWrapper title="Today's Posts">
-      {!canViewFeed ? (
+      {loading ? (
+        <div className="flex justify-center items-center h-40 text-zinc-400 animate-pulse">
+          <span>Loading...</span>
+        </div>
+      ) : !canViewFeed ? (
         <div className="flex flex-col items-center text-center text-zinc-400 space-y-4">
           <img src="/missed_image.png" alt="Missed" className="w-52 h-auto" />
           <p>You missed the posting window. Come back tomorrow!</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {posts.map((post) => {
-            const isSwapped = swappedPostIds.has(post.$id);
-            const mainPhotoId = isSwapped ? post.frontPhotoId : post.backPhotoId;
-            const pipPhotoId = isSwapped ? post.backPhotoId : post.frontPhotoId;
-            const user = userMap[post.userId];
-            const profileUrl = user?.profilePicId ? getPhotoUrl(user.profilePicId) : null;
-            const reactions = post.reactions || [];
-            const userReaction = getUserReaction(reactions);
-            const summary = getReactionSummary(reactions);
-            const showPicker = emojiPickerVisible[post.$id];
-            const commentLabel = post.comments?.length
-              ? `${post.comments.length} comment${post.comments.length > 1 ? "s" : ""}`
-              : "Add a comment...";
 
-            return (
-              <div
-                key={post.$id}
-                className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800"
+        {/* USER POST - Mini Preview */}
+        {userPost && (
+          <div className="bg-black rounded-xl overflow-hidden border border-0 shadow-md w-1/3 mx-auto">
+            <div className="relative">
+              <img
+                src={getPhotoUrl(swappedPostIds.has(userPost.$id) ? userPost.frontPhotoId : userPost.backPhotoId)}
+                alt="User Main"
+                className="w-full h-auto object-cover rounded-lg"
+              />
+              <img
+                src={getPhotoUrl(swappedPostIds.has(userPost.$id) ? userPost.backPhotoId : userPost.frontPhotoId)}
+                alt="User PiP"
+                onClick={() => toggleSwap(userPost.$id)}
+                className="absolute top-2 left-2 w-12 h-16 object-cover rounded-md border-2 border-white shadow cursor-pointer"
+              />
+            </div>
+
+            {userPost.description && (
+              <div className="px-2 pt-2 text-xs text-white">
+                {userPost.description}
+              </div>
+            )}
+
+            {/* Reactions for user post */}
+            {Object.keys(getReactionSummary(userPost.reactions || {})).length > 0 && (
+              <div className="px-2 pt-2 text-xs text-white flex gap-2 flex-wrap break-words">
+                {Object.entries(getReactionSummary(userPost.reactions || [])).map(([emoji, count]) => (
+                  <span key={emoji}>{emoji} {count}</span>
+                ))}
+              </div>
+            )}
+
+            <div className="px-2 pt-1 pb-2 flex justify-start items-center text-white text-xs border-t border-black whitespace-nowrap overflow-hidden text-ellipsis">
+              <Link
+                to={`/post/${userPost.$id}`}
+                onClick={() => sessionStorage.setItem("scrollPosition", window.scrollY.toString())}
+                className="flex items-center gap-1 text-zinc-400 hover:text-white"
               >
-                <div className="flex items-center gap-3 p-3 border-b border-zinc-800">
-                  {profileUrl ? (
-                    <img
-                      src={profileUrl}
-                      alt="Profile"
-                      className="w-10 h-10 object-cover rounded-full border border-white"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-zinc-700" />
-                  )}
-                  <div>
-                    <p className="font-semibold">{post.username}</p>
-                    <p className="text-xs text-zinc-400">
-                      {new Date(post.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <div className="relative">
+                {userPost.comments?.length ? `${userPost.comments.length} comments` : "Add a comment..."}
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* FRIENDS POSTS - Full Size */}
+        {friendsPosts.map((post) => {
+          const isSwapped = swappedPostIds.has(post.$id);
+          const mainPhotoId = isSwapped ? post.frontPhotoId : post.backPhotoId;
+          const pipPhotoId = isSwapped ? post.backPhotoId : post.frontPhotoId;
+          const user = userMap[post.userId];
+          const profileUrl = user?.profilePicId ? getPhotoUrl(user.profilePicId) : null;
+          const reactions = post.reactions || [];
+          const userReaction = getUserReaction(reactions);
+          const summary = getReactionSummary(reactions);
+          const showPicker = emojiPickerVisible[post.$id];
+          const commentLabel = post.comments?.length
+            ? `${post.comments.length} comments`
+            : "";
+          const location = locations[post.$id];
+
+          return (
+            <div
+              key={post.$id}
+              className="bg-black rounded-xl overflow-hidden shadow-xl"
+            >
+              <div className="flex items-center gap-3 p-3 px-0.5">
+                {profileUrl ? (
                   <img
-                    src={getPhotoUrl(mainPhotoId)}
-                    alt="Main"
-                    className="w-full object-contain max-h-[600px]"
+                    src={profileUrl}
+                    alt="Profile"
+                    className="w-8 h-8 object-cover rounded-full border border-white"
                   />
-                  <img
-                    src={getPhotoUrl(pipPhotoId)}
-                    alt="PiP"
-                    onClick={() => toggleSwap(post.$id)}
-                    className="absolute top-2 right-2 w-24 h-auto max-h-40 object-contain rounded-lg border-2 border-white cursor-pointer"
-                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-zinc-700" />
+                )}
+                <div className="text-white text-sm">
+                  <p className="font-semibold">{post.username}</p>
+                  <p className="text-xs text-zinc-400">
+                    {new Date(post.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })} {location && `• ${location}`}
+                  </p>
                 </div>
-                {post.description && (
-                  <div className="p-3 border-t border-zinc-800">
-                    <p className="text-sm text-zinc-200">{post.description}</p>
+              </div>
+
+              <div className="relative">
+                <img
+                  src={getPhotoUrl(mainPhotoId)}
+                  alt="Main"
+                  className="w-full h-auto object-cover rounded-lg"
+                />
+                <img
+                  src={getPhotoUrl(pipPhotoId)}
+                  alt="PiP"
+                  onClick={() => toggleSwap(post.$id)}
+                  className="absolute top-3 left-3 w-20 h-28 object-cover rounded-lg border-2 border-white shadow-md cursor-pointer"
+                />
+
+                {Object.entries(summary).length > 0 && (
+                  <div className="absolute bottom-2 left-3 bg-black bg-opacity-60 text-white text-sm px-2 py-1 rounded-lg shadow">
+                    {Object.entries(summary).map(([emoji, count]) => (
+                      <span key={emoji} className="mr-2">{emoji} {count}</span>
+                    ))}
                   </div>
                 )}
-                <div className="p-3 border-t border-zinc-800 space-y-2">
-                  {Object.keys(summary).length > 0 && (
-                    <div className="flex gap-2 text-lg">
-                      {Object.entries(summary).map(([emoji, count]) => (
-                        <span key={emoji}>
-                          {emoji} {count}
-                        </span>
+
+                <div className="absolute bottom-2 right-3">
+                  <button
+                    onClick={() => toggleEmojiPicker(post.$id)}
+                    className="bg-black bg-opacity-60 text-white w-10 h-10 flex items-center justify-center rounded-full border border-white shadow hover:scale-105 transition"
+                  >
+                    {userReaction || "+"}
+                  </button>
+                  {showPicker && (
+                    <div className="absolute bottom-12 right-0 bg-zinc-900 border border-zinc-700 rounded-xl shadow-md p-2 flex gap-2 z-50 animate-fade-in-scale">
+                      {emojis.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleReact(post, emoji)}
+                          className="text-xl hover:scale-110 transition"
+                        >
+                          {emoji}
+                        </button>
                       ))}
                     </div>
                   )}
-                  <div className="flex justify-between items-center">
-                    <div className="flex gap-2">
-                      {userReaction && !showPicker ? (
-                        <button onClick={() => toggleEmojiPicker(post.$id)} className="text-xl">
-                          {userReaction}
-                        </button>
-                      ) : (
-                        emojis.map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleReact(post, emoji)}
-                            className="text-xl hover:scale-110 transition"
-                          >
-                            {emoji}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                    <Link
-                      to={`/post/${post.$id}`}
-                      onClick={() => sessionStorage.setItem("scrollPosition", window.scrollY.toString())}
-                      className="text-sm text-zinc-400 underline hover:text-white"
-                    >
-                      💬 {commentLabel}
-                    </Link>
-                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              {post.description && (
+                <div className="px-0.5 pt-3 text-sm text-white">
+                  {post.description}
+                </div>
+              )}
+
+              <div className="px-0.5 py-3 pt-0 flex justify-start items-center border-t border-black text-white text-sm">
+                <Link
+                  to={`/post/${post.$id}`}
+                  onClick={() => sessionStorage.setItem("scrollPosition", window.scrollY.toString())}
+                  className="flex items-center gap-1 text-zinc-400 hover:text-white"
+                >
+                  <span>{commentLabel || "Add a comment..."}</span>
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       )}
     </PageWrapper>
   );
