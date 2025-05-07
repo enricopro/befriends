@@ -1,0 +1,17 @@
+{
+  "name": "send-notification",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "node-appwrite": "^16.0.0",
+    "web-push": "^3.6.7"
+  }
+}

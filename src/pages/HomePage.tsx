@@ -2,36 +2,66 @@ import { useEffect, useState } from "react";
 import { account, databases, storage } from "@/services/appwrite";
 import { Query } from "appwrite";
 import PageWrapper from "@/components/UI/PageWrapper";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const HomePage = () => {
   const [userId, setUserId] = useState("");
   const [friends, setFriends] = useState<string[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [userMap, setUserMap] = useState<Record<string, any>>({});
-  const [locationMap, setLocationMap] = useState<Record<string, string>>({});
   const [swappedPostIds, setSwappedPostIds] = useState<Set<string>>(new Set());
   const [emojiPickerVisible, setEmojiPickerVisible] = useState<Record<string, boolean>>({});
+  const [canViewFeed, setCanViewFeed] = useState(false);
+  const navigate = useNavigate();
 
   const dbId = import.meta.env.VITE_APPWRITE_DATABASE_ID!;
   const usersColId = import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID!;
   const postsColId = import.meta.env.VITE_APPWRITE_POSTS_COLLECTION_ID!;
+  const notifsColId = import.meta.env.VITE_APPWRITE_NOTIFICATIONS_COLLECTION_ID!;
   const bucketId = import.meta.env.VITE_APPWRITE_STORAGE_ID!;
-  const openCageKey = import.meta.env.VITE_OPENCAGE_API_KEY!;
 
   const emojis = ["👍", "😁", "😮", "😍", "😂"];
 
   useEffect(() => {
-    const loadFeed = async () => {
+    const loadData = async () => {
       const session = await account.get();
       setUserId(session.$id);
+
+      const now = new Date();
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
+
+      // Check if user has posted today
+      const postRes = await databases.listDocuments(dbId, postsColId, [
+        Query.equal("userId", session.$id),
+        Query.greaterThan("timestamp", today.toISOString()),
+      ]);
+
+      const hasPosted = postRes.documents.length > 0;
+      setCanViewFeed(hasPosted);
+
+      // Fetch today's notification
+      const notifRes = await databases.listDocuments(dbId, notifsColId, [
+        Query.equal("year", now.getUTCFullYear()),
+        Query.equal("month", now.getUTCMonth() + 1),
+        Query.equal("day", now.getUTCDate()),
+        Query.equal("type", "daily"),
+      ]);
+
+      const notif = notifRes.documents[0];
+      const notifTime = notif ? new Date(notif.timestamp) : null;
+
+      // If within 5 minutes of the notification AND user hasn't posted, redirect
+      if (notifTime && now.getTime() - notifTime.getTime() < 5 * 60 * 1000 && !hasPosted) {
+        navigate("/post");
+        return;
+      }
+
+      if (!hasPosted) return;
 
       const userDoc = await databases.getDocument(dbId, usersColId, session.$id);
       const friendIds = userDoc.friends || [];
       const allowedUserIds = [session.$id, ...friendIds];
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
 
       const result = await databases.listDocuments(dbId, postsColId, [
         Query.greaterThan("timestamp", today.toISOString()),
@@ -40,13 +70,6 @@ const HomePage = () => {
       const filteredPosts = result.documents.filter((doc) =>
         allowedUserIds.includes(doc.userId)
       );
-
-      // Sort: user's post first, then friends'
-      filteredPosts.sort((a, b) => {
-        if (a.userId === session.$id) return -1;
-        if (b.userId === session.$id) return 1;
-        return 0;
-      });
 
       const userIds = Array.from(new Set(filteredPosts.map((p) => p.userId)));
       const userDocs = await Promise.all(userIds.map((id) =>
@@ -59,33 +82,9 @@ const HomePage = () => {
 
       setUserMap(userDataMap);
       setPosts(filteredPosts);
-
-      // fetch locations
-      for (const post of filteredPosts) {
-        if (post.lat && post.lng && !locationMap[post.$id]) {
-          try {
-            const res = await fetch(
-              `https://api.opencagedata.com/geocode/v1/json?q=${post.lat}+${post.lng}&key=${openCageKey}`
-            );
-            const data = await res.json();
-            const loc =
-              data.results?.[0]?.components?.city ||
-              data.results?.[0]?.components?.town ||
-              data.results?.[0]?.components?.village ||
-              data.results?.[0]?.components?.county ||
-              data.results?.[0]?.components?.state ||
-              "";
-            const country = data.results?.[0]?.components?.country || "";
-            const label = [loc, country].filter(Boolean).join(", ");
-            setLocationMap((prev) => ({ ...prev, [post.$id]: label }));
-          } catch (err) {
-            console.warn("Location fetch failed", err);
-          }
-        }
-      }
     };
 
-    loadFeed();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -147,11 +146,14 @@ const HomePage = () => {
 
   return (
     <PageWrapper title="Today's Posts">
-      <div className="space-y-6">
-        {posts.length === 0 ? (
-          <p className="text-center text-zinc-400">No posts yet today.</p>
-        ) : (
-          posts.map((post) => {
+      {!canViewFeed ? (
+        <div className="flex flex-col items-center text-center text-zinc-400 space-y-4">
+          <img src="/missed_image.png" alt="Missed" className="w-52 h-auto" />
+          <p>You missed the posting window. Come back tomorrow!</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {posts.map((post) => {
             const isSwapped = swappedPostIds.has(post.$id);
             const mainPhotoId = isSwapped ? post.frontPhotoId : post.backPhotoId;
             const pipPhotoId = isSwapped ? post.backPhotoId : post.frontPhotoId;
@@ -164,39 +166,31 @@ const HomePage = () => {
             const commentLabel = post.comments?.length
               ? `${post.comments.length} comment${post.comments.length > 1 ? "s" : ""}`
               : "Add a comment...";
-            const location = locationMap[post.$id];
 
             return (
               <div
                 key={post.$id}
                 className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800"
               >
-                <div className="flex justify-between items-center p-3 border-b border-zinc-800">
-                  <div className="flex items-center gap-3">
-                    {profileUrl ? (
-                      <img
-                        src={profileUrl}
-                        alt="Profile"
-                        className="w-10 h-10 object-cover rounded-full border border-white"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-zinc-700" />
-                    )}
-                    <div>
-                      <p className="font-semibold">{post.username}</p>
-                      <p className="text-xs text-zinc-400">
-                        {new Date(post.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  {location && (
-                    <p className="text-xs text-zinc-400 italic text-right max-w-[50%] truncate">
-                      📍 {location}
-                    </p>
+                <div className="flex items-center gap-3 p-3 border-b border-zinc-800">
+                  {profileUrl ? (
+                    <img
+                      src={profileUrl}
+                      alt="Profile"
+                      className="w-10 h-10 object-cover rounded-full border border-white"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-zinc-700" />
                   )}
+                  <div>
+                    <p className="font-semibold">{post.username}</p>
+                    <p className="text-xs text-zinc-400">
+                      {new Date(post.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
                 </div>
                 <div className="relative">
                   <img
@@ -255,9 +249,9 @@ const HomePage = () => {
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </PageWrapper>
   );
 };

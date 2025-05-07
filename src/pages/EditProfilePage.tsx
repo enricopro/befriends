@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { account, databases, storage, ID } from "@/services/appwrite";
 import PageWrapper from "@/components/UI/PageWrapper";
+import { Link } from "react-router-dom";
+import { Users } from "lucide-react";
 
 const EditProfilePage = () => {
   const [userId, setUserId] = useState("");
@@ -76,6 +78,13 @@ const EditProfilePage = () => {
             className="w-32 h-32 object-cover rounded-full border border-white"
           />
         )}
+
+        <Link
+          to="/friends"
+          className="flex items-center gap-2 mt-2 text-sm text-zinc-400 hover:text-white"
+        >
+          <Users className="w-4 h-4" /> Manage Friends
+        </Link>
 
         <input
           ref={fileInputRef}
