@@ -11,16 +11,18 @@ const PageWrapper = ({ children, title }: PageWrapperProps) => {
 
   useEffect(() => {
     const checkMobile = () => {
-      const userAgent = navigator.userAgent || navigator.vendor;
-
-      // This handles iPhones, Androids, older iPads, and newer iPads pretending to be desktops
-      const isMobileDevice =
-        /android|iphone|ipad|ipod|mobile/i.test(userAgent) ||
-        (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent));
-
-      setIsMobile(isMobileDevice);
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+    
+      // Explicit mobile checks
+      const isExplicitMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
+    
+      // iPads in desktop mode: identify Macs with touch support
+      const isTouchMac = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+    
+      const isMobile = isExplicitMobile || isTouchMac;
+      setIsMobile(isMobile);
     };
-
+    
     checkMobile();
   }, []);
 
