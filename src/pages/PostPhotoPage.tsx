@@ -45,7 +45,7 @@ const PostPhotoPage = () => {
       const notif = notifRes.documents[0];
       const notifTime = notif ? new Date(notif.timestamp) : null;
 
-      if (!notifTime || now.getTime() - notifTime.getTime() > 5 * 60 * 1000) {
+      if (!notifTime || now.getTime() - notifTime.getTime() > 5 * 60 * 1000 || now.getTime() - notifTime.getTime() < 0) {
         navigate("/");
         return;
       }
