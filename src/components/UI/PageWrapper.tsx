@@ -11,7 +11,7 @@ const PageWrapper = ({ children, title }: PageWrapperProps) => {
 
   useEffect(() => {
     const checkMobile = () => {
-      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const ua = navigator.userAgent || navigator.vendor;
     
       // Explicit mobile checks
       const isExplicitMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
@@ -22,7 +22,7 @@ const PageWrapper = ({ children, title }: PageWrapperProps) => {
       const isMobile = isExplicitMobile || isTouchMac;
       setIsMobile(isMobile);
     };
-    
+
     checkMobile();
   }, []);
 
