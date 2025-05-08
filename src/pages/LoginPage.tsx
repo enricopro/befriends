@@ -24,8 +24,10 @@ const LoginPage = () => {
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
-
+    const isInStandaloneMode =
+      (window.matchMedia?.('(display-mode: standalone)').matches) ||
+      ('standalone' in window.navigator && window.navigator.standalone);
+  
     if (isIOS && isSafari && !isInStandaloneMode) {
       alert("To receive notifications, please add this app to your home screen.");
     }

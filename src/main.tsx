@@ -3,6 +3,16 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
+import { registerSW } from "virtual:pwa-register";
+
+registerSW({
+  onNeedRefresh() {
+    console.log("🔁 New content available");
+  },
+  onOfflineReady() {
+    console.log("✅ Offline ready");
+  }
+});
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch((err) => {
