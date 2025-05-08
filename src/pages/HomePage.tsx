@@ -219,6 +219,13 @@ const HomePage = () => {
           </div>
         )}
 
+        {friendsPosts.length === 0 && (
+          <div className="text-center text-zinc-500 mt-8">
+            <p>None of your friends have posted yet today.</p>
+            <p className="text-sm text-zinc-400 mt-1">Check back later!</p>
+          </div>
+        )}
+
         {/* FRIENDS POSTS - Full Size */}
         {friendsPosts.map((post) => {
           const isSwapped = swappedPostIds.has(post.$id);
