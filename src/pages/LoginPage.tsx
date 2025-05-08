@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { account, databases } from "@/services/appwrite";
 import { useNavigate, Link } from "react-router-dom";
 import PageWrapper from "@/components/UI/PageWrapper";
@@ -20,6 +20,16 @@ const LoginPage = () => {
     }
     return outputArray;
   }  
+
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
+
+    if (isIOS && isSafari && !isInStandaloneMode) {
+      alert("To receive notifications, please add this app to your home screen.");
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

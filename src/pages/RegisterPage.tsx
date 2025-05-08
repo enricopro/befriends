@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { use, useState, useEffect } from "react";
 import { account, databases } from "@/services/appwrite";
 import { ID } from "appwrite";
 import { useNavigate } from "react-router-dom";
@@ -20,22 +20,32 @@ const RegisterPage = () => {
       outputArray[i] = rawData.charCodeAt(i);
     }
     return outputArray;
-  }  
+  }
+
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
+
+    if (isIOS && isSafari && !isInStandaloneMode) {
+      alert("To receive notifications, please add this app to your home screen.");
+    }
+  }, []);
 
   const handleRegister = async () => {
     setError("");
-  
+
     try {
       console.log("🔵 Creating user...");
       await account.create(ID.unique(), email, password, username);
-  
+
       console.log("🔵 Creating session...");
       await account.createEmailPasswordSession(email, password);
-  
+
       console.log("🔵 Getting user...");
       const sessionUser = await account.get();
       console.log("✅ Got user:", sessionUser.$id);
-  
+
       console.log("🔵 Creating user document...");
       await databases.createDocument(
         import.meta.env.VITE_APPWRITE_DATABASE_ID!,
@@ -47,14 +57,14 @@ const RegisterPage = () => {
         }
       );
       console.log("✅ User document created");
-  
+
       console.log("🔵 Requesting notification permission...");
       const permission = await Notification.requestPermission();
-  
+
       if (permission === "granted" && "serviceWorker" in navigator) {
         console.log("🔵 Waiting for active service worker...");
         const registration = await navigator.serviceWorker.ready;
-  
+
         const vapidKey = urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY);
         console.log("🔵 Subscribing to push...");
         const subscription = await registration.pushManager.subscribe({
@@ -82,7 +92,7 @@ const RegisterPage = () => {
       } else {
         console.warn("⚠️ Notification permission denied or unsupported");
       }
-  
+
       console.log("✅ Redirecting to /");
       navigate("/");
     } catch (err: any) {
@@ -90,7 +100,7 @@ const RegisterPage = () => {
       setError(err.message || "Registration failed");
     }
   };
-  
+
   return (
     <PageWrapper title="Register">
       <div className="space-y-4">
