@@ -43,7 +43,7 @@ const DualCameraCapture = ({ onCapture }: Props) => {
   const handleCapture = () => {
     if (!frontVideoRef.current || !backVideoRef.current) return;
 
-    const capture = (video: HTMLVideoElement): Blob | null => {
+    const capture = async (video: HTMLVideoElement): Promise<Blob> => {
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -51,7 +51,11 @@ const DualCameraCapture = ({ onCapture }: Props) => {
       if (!ctx) return null;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      return canvas.toDataURL("image/jpeg");
+      return await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+          resolve(blob!);
+        }, "image/jpeg");
+      });
     };
 
     const frontCanvas = document.createElement("canvas");

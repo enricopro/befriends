@@ -18,7 +18,7 @@ const UserListItem = ({ user, action }: Props) => {
 
   useEffect(() => {
     if (user.profilePicId) {
-      const url = storage.getFileDownload(bucketId, user.profilePicId).href;
+      const url = storage.getFileDownload(bucketId, user.profilePicId);
       setProfileUrl(url);
     }
   }, [user.profilePicId]);

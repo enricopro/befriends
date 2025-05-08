@@ -39,10 +39,10 @@ const CommentsPage = () => {
         const uniqueUsernames = Array.from(new Set((doc.comments || []).map((c: string) => c.split(":")[0])));
         const profiles = await Promise.all(uniqueUsernames.map(async (uname) => {
           const result = await databases.listDocuments(dbId, usersColId, [
-            Query.equal("username", uname),
+            Query.equal("username", uname as string),
           ]);
           const user = result.documents[0];
-          return user ? { [uname]: user.profilePicId } : {};
+          return user ? { [uname as string]: user.profilePicId } : {};
         }));
 
         const combined: Record<string, string> = Object.assign({}, ...profiles);
