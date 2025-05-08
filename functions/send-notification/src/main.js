@@ -72,6 +72,9 @@ module.exports = async ({ res, log, error }) => {
     const payload = JSON.stringify({
       title: "📸 Time to post!",
       body: "Open BeFriends and post your daily photo!",
+      data: {
+        url: "https://befriends-jet.vercel.app/post"
+      }
     });
 
     let count = 0;
