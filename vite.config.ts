@@ -32,9 +32,24 @@ export default defineConfig({
             type: 'image/png'
           }
         ]
+      },
+      workbox: {
+        runtimeCaching: [
+          {
+            // Cache Appwrite storage downloads (update this regex if your endpoint differs)
+            urlPattern: /^https:\/\/cloud\.appwrite\.io\/v1\/storage\/buckets\/.*\/files\/.*\/download/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'appwrite-images',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 // 1 day
+              }
+            }
+          }
+        ]
       }
     })
-
   ],
   resolve: {
     alias: {
