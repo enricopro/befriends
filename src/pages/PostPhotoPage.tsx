@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { account, databases } from "@/services/appwrite";
 import { Query } from "appwrite";
-import CameraCapture from "@/components/Post/CameraCapture";
 import DualCameraCapture from "@/components/Post/DualCameraCapture";
 import PhotoPreview from "@/components/Post/PhotoPreview";
 import PageWrapper from "@/components/UI/PageWrapper";
@@ -87,21 +86,6 @@ const PostPhotoPage = () => {
 
     checkDualSupport();
   }, []);
-
-  const handlePhotoCapture = (photo: Blob) => {
-    if (step === "front") {
-      setPhotos((prev) => ({ ...prev, front: photo }));
-      setStep("back");
-    } else if (step === "back") {
-      setPhotos((prev) => ({ ...prev, back: photo }));
-      setStep("preview");
-    }
-  };
-
-  const handleDualCapture = (front: Blob, back: Blob) => {
-    setPhotos({ front, back });
-    setStep("preview");
-  };
 
   const handleRetake = () => {
     setPhotos({ front: null, back: null });

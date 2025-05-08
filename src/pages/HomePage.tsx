@@ -52,7 +52,7 @@ const HomePage = () => {
       const notif = notifRes.documents[0];
       const notifTime = notif ? new Date(notif.timestamp) : null;
 
-      if (notifTime && now.getTime() - notifTime.getTime() < 5 * 60 * 1000 && !hasPosted) {
+      if (notifTime && now.getTime() - notifTime.getTime() < 5 * 60 * 1000 && now.getTime() - notifTime.getTime() > 0 && !hasPosted) {
         navigate("/post");
         return;
       }
