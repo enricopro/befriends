@@ -42,7 +42,7 @@ export default defineConfig({
             options: {
               cacheName: 'appwrite-images',
               expiration: {
-                maxEntries: 50,
+                maxEntries: 5000000,
                 maxAgeSeconds: 60 * 60 * 24 // 1 day
               }
             }
