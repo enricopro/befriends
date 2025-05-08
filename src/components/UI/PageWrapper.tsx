@@ -10,13 +10,15 @@ const PageWrapper = ({ children, title }: PageWrapperProps) => {
   const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent || navigator.vendor;
-      const isMobileDevice = /android|iphone|ipad|mobile/i.test(userAgent);
-      setIsMobile(isMobileDevice);
+    const isMobile = () => {
+      const ua = navigator.userAgent || navigator.vendor;
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isPhoneOrTablet = /android|iphone|ipod|ipad/i.test(ua);
+      return isTouch && isPhoneOrTablet;
     };
-    checkMobile();
-  }, []);
+  
+    setIsMobile(isMobile());
+  }, []);  
 
   if (!isMobile) {
     return (
