@@ -10,15 +10,19 @@ const PageWrapper = ({ children, title }: PageWrapperProps) => {
   const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
-    const isMobile = () => {
-      const ua = navigator.userAgent || navigator.vendor;
-      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isPhoneOrTablet = /android|iphone|ipod|ipad/i.test(ua);
-      return isTouch && isPhoneOrTablet;
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor;
+
+      // This handles iPhones, Androids, older iPads, and newer iPads pretending to be desktops
+      const isMobileDevice =
+        /android|iphone|ipad|ipod|mobile/i.test(userAgent) ||
+        (navigator.maxTouchPoints > 1 && /Macintosh/i.test(userAgent));
+
+      setIsMobile(isMobileDevice);
     };
-  
-    setIsMobile(isMobile());
-  }, []);  
+
+    checkMobile();
+  }, []);
 
   if (!isMobile) {
     return (
