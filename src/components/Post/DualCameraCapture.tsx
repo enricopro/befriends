@@ -14,6 +14,8 @@ const DualCameraCapture = ({ onCapture }: Props) => {
 
   // Detect iOS
   useEffect(() => {
+    alert(window.navigator.userAgent);
+    alert("isIos: " + /iPad|iPhone|iPod/.test(navigator.userAgent))
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIos) {
       setUseFallback(true);
