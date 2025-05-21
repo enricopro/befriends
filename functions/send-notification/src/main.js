@@ -50,11 +50,6 @@ module.exports = async ({ res, log, error }) => {
       return res.send("Too early — skipping.");
     }
 
-    if (diffMs > 0) {
-      log(`Waiting ${Math.floor(diffMs / 1000)}s until push...`);
-      await new Promise((r) => setTimeout(r, diffMs));
-    }
-
     // Step 2: Send to all subscribers
     const subs = await databases.listDocuments(dbId, subscriptionsCol);
     if (!subs.documents.length) {
