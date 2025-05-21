@@ -89,7 +89,7 @@ const DualCameraCapture = ({ onCapture }: Props) => {
   };
 
   // Render fallback for iOS PWA
-  if (useFallback) {
+  if (true) {
     return (
       <div className="flex flex-col items-center space-y-4">
         <input
