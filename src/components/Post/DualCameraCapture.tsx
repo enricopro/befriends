@@ -12,11 +12,10 @@ const DualCameraCapture = ({ onCapture }: Props) => {
   const [error, setError] = useState<string>("");
   const [useFallback, setUseFallback] = useState(false);
 
-  // Detect if getUserMedia is not available or unreliable (iOS PWA)
+  // Detect iOS
   useEffect(() => {
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const hasMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-    if (isIos && !hasMedia) {
+    if (isIos) {
       setUseFallback(true);
     }
   }, []);
@@ -89,7 +88,7 @@ const DualCameraCapture = ({ onCapture }: Props) => {
   };
 
   // Render fallback for iOS PWA
-  if (true) {
+  if (useFallback) {
     return (
       <div className="flex flex-col items-center space-y-4">
         <input
