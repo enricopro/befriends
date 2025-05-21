@@ -4,7 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa';
 import path from "path";
 
-// https://vite.dev/config/
 export default defineConfig({
   base: "/",
   plugins: [
@@ -21,30 +20,23 @@ export default defineConfig({
         background_color: '#000000',
         theme_color: '#000000',
         icons: [
-          {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
         ]
       },
       workbox: {
+        // DON’T immediately skipWaiting or claim clients
+        skipWaiting: false,
+        clientsClaim: false,
+
+        // Your runtimeCaching rules
         runtimeCaching: [
           {
-            // Cache Appwrite storage downloads (update this regex if your endpoint differs)
             urlPattern: /^https:\/\/cloud\.appwrite\.io\/v1\/storage\/buckets\/.*\/files\/.*\/download/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'appwrite-images',
-              expiration: {
-                maxEntries: 5000000,
-                maxAgeSeconds: 60 * 60 * 24 // 1 day
-              }
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }
             }
           }
         ]
@@ -52,8 +44,6 @@ export default defineConfig({
     })
   ],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: { "@": path.resolve(__dirname, "./src") },
   },
 })
