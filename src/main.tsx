@@ -7,6 +7,7 @@ import { registerSW } from "virtual:pwa-register";
 
 registerSW({
   onNeedRefresh() {
+    // Suppress the default prompt
     console.log("🔁 New content available");
   },
   onOfflineReady() {
@@ -14,11 +15,6 @@ registerSW({
   }
 });
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch((err) => {
-    console.error("❌ Failed to register service worker:", err);
-  });
-}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
