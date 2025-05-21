@@ -1,13 +1,13 @@
 self.addEventListener("push", function (event) {
-  let data = {};
-  try {
-    data = event.data?.json() || {};
-  } catch (e) {
-    console.error("Push data is not valid JSON", e);
-  }
+  const data = event.data?.json() || {};
 
-  self.registration.showNotification(data.title || "📸 Time to post!", {
-    body: data.body || "Open BeFriends and post your daily photo!",
-    icon: "/logo_icon.png",
-  });
+  event.waitUntil( // 🔁 This keeps the SW alive
+    self.registration.showNotification(data.title || "📸 Time to post!", {
+      body: data.body || "Open BeFriends and post your daily photo!",
+      icon: "/logo_icon.png",
+      data: {
+        url: data.data?.url || "https://befriends-jet.vercel.app/post"
+      }
+    })
+  );
 });
