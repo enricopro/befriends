@@ -40,13 +40,13 @@ module.exports = async ({ res, log, error }) => {
     log(`Current time: ${now}`);
     log(`Difference: ${diffMs}ms`);
 
-    if (diffMs < 0) {
-      log("Notification already sent today — skipping.")
+    if (diffMs > 0) {
+      log("Too early — skipping.")
       return res.send("Notification already sent today — skipping.");
     }
 
-    if (diffMs > 2 * 60 * 1000) {
-      log("Too early — skipping.")
+    if (diffMs > 60 * 1000) {
+      log("Notification already sent today — skipping.")
       return res.send("Too early — skipping.");
     }
 
