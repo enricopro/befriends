@@ -1,8 +1,9 @@
+// vite.config.ts
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa';
-import path from "path";
+import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
 
 export default defineConfig({
   base: "/",
@@ -10,8 +11,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
+      registerType: 'prompt',         // ← prompt mode
+      includeAssets: ['favicon.ico','icon-192.png','icon-512.png'],
       manifest: {
         name: 'BeFriends',
         short_name: 'BeFriends',
@@ -20,23 +21,19 @@ export default defineConfig({
         background_color: '#000000',
         theme_color: '#000000',
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+          { src:'/icon-192.png', sizes:'192x192', type:'image/png' },
+          { src:'/icon-512.png', sizes:'512x512', type:'image/png' }
         ]
       },
       workbox: {
-        // DON’T immediately skipWaiting or claim clients
-        skipWaiting: false,
-        clientsClaim: false,
-
-        // Your runtimeCaching rules
         runtimeCaching: [
           {
+            // allow Appwrite images to be fetched network-first
             urlPattern: /^https:\/\/cloud\.appwrite\.io\/v1\/storage\/buckets\/.*\/files\/.*\/download/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'appwrite-images',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }
+              expiration: { maxEntries: 50, maxAgeSeconds: 60*60*24 }
             }
           }
         ]
